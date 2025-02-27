@@ -4,8 +4,8 @@ from fasthtml.svg import *
 
 from app.models import (
     get_all_tasks, 
-    get_count_priority_tasks, 
-    get_count_status_tasks,
+    get_count_category, 
+    get_count_habilitado,
     get_count_rows
 )
 
@@ -15,20 +15,22 @@ def LAlignedCheckTxt(txt):
     return DivLAligned(UkIcon(icon='check'), P(txt, cls=TextPresets.muted_sm))
 
 def _create_tbl_data(d):
-    return {'Done': d['selected'], 'Task': d['id'], 'Title': d['title'], 
-            'Status'  : d['status'], 'Priority': d['priority'] }
+    return {'Equipo': d['equipo'], 'Categoria': d['categoria'], 'Fabricante': d['fabricante'], 
+            'Modelo'  : d['modelo'], 'Descripcion': d['descripcion'] , 'Habilitado': d['habilitado'] }
 
 def CreateTaskModal():
     return Modal(
         Div(cls='p-6')(
-            ModalTitle('Crear Nueva Tarea'),
-            P('Fill out the information below to create a new task', cls=TextPresets.muted_sm),
+            ModalTitle('Crear Nuevo Equipo'),
+            P('Añadir equipo a la base de datos', cls=TextPresets.muted_sm),
             Br(),
             Form(cls='space-y-6')(
-                Grid(Div(Select(*map(Option,('Documentation', 'Bug', 'Feature')), label='Task Type', id='task_type', name='selected')),
-                     Div(Select(*map(Option,('In Progress', 'Backlog', 'Todo', 'Cancelled', 'Done')), label='Status', id='task_status', name='estado')),
-                     Div(Select(*map(Option, ('Low', 'Medium', 'High')), label='Priority', id='task_priority', name='prioridad'))),
-                TextArea(label='Title', placeholder='Please describe the task that needs to be completed', name='titulo'),
+                TextArea(label='Equipo', placeholder='Please describe the task that needs to be completed', name='equipo'),
+                Grid(Div(Select(*map(Option,('Inverrsor', 'AARR', 'EMI', 'logger')), label='Categoria', id='categoria', name='categoria')),
+                     Div(Select(*map(Option,('Fabricante 1', 'Fabricante 2', 'Fabricante 3', 'Fabricante 4')), label='Fabricante', id='fabricante', name='fabricante')),
+                     Div(Select(*map(Option,('Modelo 1', 'Modelo 2', 'Modelo 3')), label='Modelo', id='modelo', name='modelo')),
+                     Div(Select(*map(Option,(False, True)), label='Habilitado', id='habilitado', name='habilitado'))),
+                TextArea(label='Descripcion', placeholder='Please describe the task that needs to be completed', name='descripcion'),
                 DivRAligned(
                     ModalCloseButton('Cancel', cls=ButtonT.ghost),
                     ModalCloseButton('Submit', cls=ButtonT.primary),
@@ -39,7 +41,7 @@ def CreateTaskModal():
 def EditTaskModal():
     return Modal(
         Div(cls='p-6')(
-            ModalTitle('Editar Tarea'),
+            ModalTitle('Editar Equipo'),
             P('Fill out the information below to create a new task', cls=TextPresets.muted_sm),
             Br(),
             Form(cls='space-y-6')(
@@ -69,10 +71,10 @@ def header_render(col):
 def cell_render(col, val):
     def _Td(*args,cls='', **kwargs): return Td(*args, cls=f'p-2 {cls}',**kwargs)
     match col:
-        case "Done": return _Td(shrink=True)(CheckboxX(selected=val))
-        case "Task":  return _Td(val, cls='uk-visible@s')  # Hide on small screens
-        case "Title": return _Td(val, cls='font-medium', expand=True)
-        case "Status" | "Priority": return _Td(cls='uk-visible@m uk-text-nowrap capitalize')(Span(val))
+        case "Equipo": return _Td(val, cls='uk-visible@s')
+        case "Categoria":  return _Td(val, cls='uk-visible@s')  # Hide on small screens
+        case "Fabricante": return _Td(val, cls='font-medium', expand=True)
+        case "Modelo" | "Descripcion": return _Td(cls='uk-visible@m uk-text-nowrap capitalize')(Span(val))
         case "Actions": return _Td(task_dropdown(), shrink=True)
         case _: raise ValueError(f"Unknown column: {col}")
 
@@ -87,29 +89,29 @@ def footer(data,page_size,num_row,current_page):
 def consultar_datos():
     num_row = get_count_rows()
     data = get_all_tasks()
-    priority_dd = get_count_priority_tasks()
-    status_dd = get_count_status_tasks()
+    priority_dd = get_count_category()
+    status_dd = get_count_habilitado()
 
-    data = [_create_tbl_data(d)  for d in data]
+    data = [_create_tbl_data(d) for d in data]
     page_size = 15
     current_page = 0
     paginated_data = data[current_page*page_size:(current_page+1)*page_size]
 
     page_heading = DivFullySpaced(cls='space-y-2')(
         Div(cls='space-y-2')(
-            H2('Lista de tareas pendientes!'),P("Aqui tienes una lista con las tareas a realizar!", cls=TextPresets.muted_sm)),
+            H2('Lista de equipos en el inventario'),P("Aqui tienes una lista con las tareas a realizar!", cls=TextPresets.muted_sm)),
         )
 
     table_controls =(Input(cls='w-[250px]',placeholder='Filtro Tareas'),
         Button("Estado"),
-        DropDownNavContainer(map(NavCloseLi,[A(DivFullySpaced(P(a['status']), P(a['count'])),cls='capitalize') for a in status_dd])), 
+        DropDownNavContainer(map(NavCloseLi,[A(DivFullySpaced(P(a['habilitado']), P(a['count'])),cls='capitalize') for a in status_dd])), 
         Button("Prioridad"),
-        DropDownNavContainer(map(NavCloseLi,[A(DivFullySpaced(LAlignedCheckTxt(a['priority']), a['count']),cls='capitalize') for a in priority_dd])),
+        DropDownNavContainer(map(NavCloseLi,[A(DivFullySpaced(LAlignedCheckTxt(a['categoria']), a['count']),cls='capitalize') for a in priority_dd])),
         Button("Ver"),
         DropDownNavContainer(map(NavCloseLi,[A(LAlignedCheckTxt(o)) for o in ['Title','Status','Priority']])),
         Button('Crear',cls=(ButtonT.primary, TextPresets.bold_sm), data_uk_toggle="target: #TaskForm"))
 
-    task_columns = ["Done", 'Task', 'Title', 'Status', 'Priority', 'Actions']
+    task_columns = ["Equipo", 'Categoria', 'Fabricante', 'Modelo', 'Descripcion', 'Actions']
 
     tasks_table = Div(cls='mt-4')(
         TableFromDicts(
