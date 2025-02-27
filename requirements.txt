@@ -1,0 +1,8 @@
+uvicorn
+python-fasthtml
+pydantic
+SQLAlchemy
+fastsql
+pandas
+MonsterUI
+pymongo
